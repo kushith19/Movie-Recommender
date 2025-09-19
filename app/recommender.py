@@ -13,13 +13,13 @@ def create_similarity_matrix(df):
 def recommend_movie(movie_title, df, cosine_sim, top_n=10):
     """Return top_n recommended movie titles for a given movie title."""
     if movie_title not in df["title"].values:
-        return []  # movie not found
+        return [] 
     
     idx = df.index[df["title"] == movie_title][0]
     sim_scores = list(enumerate(cosine_sim[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
 
-    # skip the first one (it's the movie itself)
+   
     sim_scores = sim_scores[1 : top_n + 1]
     movie_indices = [i[0] for i in sim_scores]
 

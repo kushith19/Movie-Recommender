@@ -18,19 +18,19 @@ def preprocess_and_save():
     movies = pd.read_csv(movies_path)
     credits = pd.read_csv(credits_path)
 
-    # Clean column names
+   
     movies.rename(columns=lambda x: x.strip(), inplace=True)
     credits.rename(columns=lambda x: x.strip(), inplace=True)
 
-    # Ensure 'title' exists
+   
     if 'title' not in movies.columns and 'original_title' in movies.columns:
         movies.rename(columns={'original_title': 'title'}, inplace=True)
 
-    # Merge datasets
+ 
     credits.rename(columns={'movie_id': 'id'}, inplace=True)
     df = movies.merge(credits, on='id', how='inner')
 
-    # Helper to extract names
+  
     def extract_names(obj):
         try:
             lst = ast.literal_eval(obj)
@@ -49,13 +49,13 @@ def preprocess_and_save():
         df['overview'].fillna('') + ' ' + df['genres'] + ' ' + df['keywords'] + ' ' + df['cast'] + ' ' + df['crew']
     )
 
-    # Poster URLs (foolproof)
+   
     df['poster_path'] = df.get('poster_path', '').fillna('')
     df['poster_url'] = df['poster_path'].apply(
         lambda x: f"https://image.tmdb.org/t/p/w500{x}" if x else "https://via.placeholder.com/150x225?text=No+Image"
     )
 
-    # Keep useful columns
+   
     df_final = df[['id', 'title', 'genres', 'release_year', 'popularity', 'poster_url', 'combined_features']]
 
     df_final.to_csv(output_path, index=False)

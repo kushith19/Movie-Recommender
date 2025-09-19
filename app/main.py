@@ -4,9 +4,7 @@ from preprocessing import load_data
 from recommender import create_similarity_matrix, recommend_movie, save_similarity_matrix, load_similarity_matrix
 import os
 
-# -----------------------------
-# Caching for speed
-# -----------------------------
+
 @st.cache_data
 def get_movies():
     """Load movies.csv safely"""
@@ -31,28 +29,23 @@ def get_similarity(df):
         return sim
 
 
-# -----------------------------
-# Load data & similarity
-# -----------------------------
 df = get_movies()
 if df.empty:
     st.stop()
 
 cosine_sim = get_similarity(df)
 
-# -----------------------------
-# Streamlit UI
-# -----------------------------
+
 st.title("🎬 Movie Recommender System")
 
-# Sidebar Filters
+
 st.sidebar.header("Filter Movies")
 
-# Genre filter
+
 genres_list = sorted({g for sublist in df['genres'].dropna().str.split() for g in sublist if g})
 selected_genres = st.sidebar.multiselect("Select Genres", genres_list)
 
-# Year filter (fixed)
+
 valid_years = df[df['release_year'] > 1900]['release_year']
 min_year, max_year = int(valid_years.min()), int(valid_years.max())
 year_range = st.sidebar.slider(
@@ -62,20 +55,19 @@ year_range = st.sidebar.slider(
     value=(min_year, max_year)
 )
 
-# Popularity filter
+
 min_pop, max_pop = float(df['popularity'].min()), float(df['popularity'].max())
 pop_range = st.sidebar.slider("Select Popularity Range", min_pop, max_pop, (min_pop, max_pop))
 
-# Movie selection
+
 movie_list = df['title'].dropna().unique()
 selected_movie = st.selectbox("Choose a movie you like:", movie_list)
 
-# Recommend button
 if st.button("Recommend"):
-    # Get top 50 similar movies
+  
     recommendations = recommend_movie(selected_movie, df, cosine_sim, top_n=50)
 
-    # Apply filters
+  
     filtered_movies = df[df['title'].isin(recommendations)].copy()
 
     if selected_genres:
@@ -90,7 +82,7 @@ if st.button("Recommend"):
         (filtered_movies['popularity'] <= pop_range[1])
     ]
 
-    # Display results
+
     st.subheader("Movies you may like:")
     if not filtered_movies.empty:
         for idx, row in enumerate(filtered_movies.head(10).itertuples(), start=1):
