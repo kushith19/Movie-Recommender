@@ -5,6 +5,12 @@ from recommender import create_similarity_matrix, recommend_movie, save_similari
 import os
 
 # -------------------------------
+# Project Paths
+# -------------------------------
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+MODELS_DIR = os.path.join(PROJECT_DIR, 'models')
+
+# -------------------------------
 # Load Movies Data
 # -------------------------------
 @st.cache_data
@@ -14,7 +20,9 @@ def get_movies():
     Falls back to sample_movies.csv in app_data/ if full dataset is not available.
     """
     try:
-        return load_data()  # load_data handles both full or sample datasets
+        df = load_data()  # load_data handles both full or sample datasets
+        st.write(f"✅ Loaded dataset with {len(df)} movies")
+        return df
     except FileNotFoundError as e:
         st.error(str(e))
         return pd.DataFrame()
@@ -28,14 +36,15 @@ def get_similarity(df):
     Load or create similarity matrix.
     Saves it in models/cosine_sim.pkl
     """
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    sim_path = os.path.join(BASE_DIR, 'models', 'cosine_sim.pkl')
+    sim_path = os.path.join(MODELS_DIR, 'cosine_sim.pkl')
 
     if os.path.exists(sim_path):
+        st.write("⚡ Loading existing similarity matrix...")
         return load_similarity_matrix(sim_path)
     else:
+        st.write("⚡ Creating similarity matrix (this may take a few seconds)...")
         sim = create_similarity_matrix(df)
-        os.makedirs(os.path.join(BASE_DIR, 'models'), exist_ok=True)
+        os.makedirs(MODELS_DIR, exist_ok=True)
         save_similarity_matrix(sim, sim_path)
         return sim
 

@@ -2,22 +2,26 @@ import pandas as pd
 import ast
 import os
 
+# Get absolute path to project root (two levels up from preprocessing.py)
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+DATA_DIR = os.path.join(PROJECT_DIR, 'data')
+APP_DATA_DIR = os.path.join(PROJECT_DIR, 'app_data')
+
 def preprocess_and_save(full=True):
     """
     Preprocess TMDB datasets and save as movies.csv.
-    If full=False or datasets not found, use a small sample dataset for deployment/demo.
+    If full=False or datasets not found, use sample_movies.csv from app_data/ for deployment/demo.
     """
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    movies_path = os.path.join(BASE_DIR, 'data', 'tmdb_5000_movies.csv')
-    credits_path = os.path.join(BASE_DIR, 'data', 'tmdb_5000_credits.csv')
-    output_path = os.path.join(BASE_DIR, 'data', 'movies.csv')
+    movies_path = os.path.join(DATA_DIR, 'tmdb_5000_movies.csv')
+    credits_path = os.path.join(DATA_DIR, 'tmdb_5000_credits.csv')
+    output_path = os.path.join(DATA_DIR, 'movies.csv')
 
     if full and os.path.exists(movies_path) and os.path.exists(credits_path):
         movies = pd.read_csv(movies_path)
         credits = pd.read_csv(credits_path)
     else:
-        # Use a small sample dataset for deployment/demo
-        sample_path = os.path.abspath(os.path.join(BASE_DIR, '..', 'app_data', 'sample_movies.csv'))
+        # Use sample dataset for deployment/demo
+        sample_path = os.path.join(APP_DATA_DIR, 'sample_movies.csv')
         if not os.path.exists(sample_path):
             raise FileNotFoundError(
                 "Sample dataset not found. Please create 'sample_movies.csv' in app_data/ for deployment."
@@ -65,30 +69,28 @@ def preprocess_and_save(full=True):
     # Keep only useful columns
     df_final = df[['id', 'title', 'genres', 'release_year', 'popularity', 'poster_url', 'combined_features']]
 
+    # Ensure data directory exists
+    os.makedirs(DATA_DIR, exist_ok=True)
     df_final.to_csv(output_path, index=False)
     print(f"✅ Preprocessed dataset saved to {output_path}")
     return df_final
 
-
 def load_data():
     """
-    Load movies.csv if exists. Otherwise, fallback to sample dataset for deployment.
+    Load movies.csv if exists. Otherwise, fallback to sample dataset from app_data/.
     """
-    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    path = os.path.join(BASE_DIR, 'data', 'movies.csv')
+    movies_csv_path = os.path.join(DATA_DIR, 'movies.csv')
+    sample_path = os.path.join(APP_DATA_DIR, 'sample_movies.csv')
 
-    if os.path.exists(path):
-        return pd.read_csv(path)
-    else:
-        # Use sample dataset from app_data for deployment/demo
-        sample_path = os.path.abspath(os.path.join(BASE_DIR, '..', 'app_data', 'sample_movies.csv'))
-        if not os.path.exists(sample_path):
-            raise FileNotFoundError(
-                "Sample dataset not found. Please create 'sample_movies.csv' in app_data/ for deployment."
-            )
+    if os.path.exists(movies_csv_path):
+        return pd.read_csv(movies_csv_path)
+    elif os.path.exists(sample_path):
         print("⚡ Using sample dataset for deployment/demo.")
         return pd.read_csv(sample_path)
-
+    else:
+        raise FileNotFoundError(
+            "Sample dataset not found. Please create 'sample_movies.csv' in app_data/ for deployment."
+        )
 
 if __name__ == "__main__":
     preprocess_and_save()
