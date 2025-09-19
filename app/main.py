@@ -1,0 +1,99 @@
+import streamlit as st
+import pandas as pd
+from preprocessing import load_data
+from recommender import create_similarity_matrix, recommend_movie, save_similarity_matrix, load_similarity_matrix
+import os
+
+# -----------------------------
+# Caching for speed
+# -----------------------------
+@st.cache_data
+def get_movies():
+    """Load movies.csv safely"""
+    try:
+        return load_data()
+    except FileNotFoundError:
+        st.error("movies.csv not found. Please run preprocessing first.")
+        return pd.DataFrame()
+
+@st.cache_resource
+def get_similarity(df):
+    """Load or create similarity matrix"""
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    sim_path = os.path.join(BASE_DIR, 'models', 'cosine_sim.pkl')
+
+    if os.path.exists(sim_path):
+        return load_similarity_matrix(sim_path)
+    else:
+        sim = create_similarity_matrix(df)
+        os.makedirs(os.path.join(BASE_DIR, 'models'), exist_ok=True)
+        save_similarity_matrix(sim, sim_path)
+        return sim
+
+
+# -----------------------------
+# Load data & similarity
+# -----------------------------
+df = get_movies()
+if df.empty:
+    st.stop()
+
+cosine_sim = get_similarity(df)
+
+# -----------------------------
+# Streamlit UI
+# -----------------------------
+st.title("🎬 Movie Recommender System")
+
+# Sidebar Filters
+st.sidebar.header("Filter Movies")
+
+# Genre filter
+genres_list = sorted({g for sublist in df['genres'].dropna().str.split() for g in sublist if g})
+selected_genres = st.sidebar.multiselect("Select Genres", genres_list)
+
+# Year filter (fixed)
+valid_years = df[df['release_year'] > 1900]['release_year']
+min_year, max_year = int(valid_years.min()), int(valid_years.max())
+year_range = st.sidebar.slider(
+    "Select Release Year Range",
+    min_value=min_year,
+    max_value=max_year,
+    value=(min_year, max_year)
+)
+
+# Popularity filter
+min_pop, max_pop = float(df['popularity'].min()), float(df['popularity'].max())
+pop_range = st.sidebar.slider("Select Popularity Range", min_pop, max_pop, (min_pop, max_pop))
+
+# Movie selection
+movie_list = df['title'].dropna().unique()
+selected_movie = st.selectbox("Choose a movie you like:", movie_list)
+
+# Recommend button
+if st.button("Recommend"):
+    # Get top 50 similar movies
+    recommendations = recommend_movie(selected_movie, df, cosine_sim, top_n=50)
+
+    # Apply filters
+    filtered_movies = df[df['title'].isin(recommendations)].copy()
+
+    if selected_genres:
+        filtered_movies = filtered_movies[
+            filtered_movies['genres'].apply(lambda g: any(genre in g.split() for genre in selected_genres))
+        ]
+
+    filtered_movies = filtered_movies[
+        (filtered_movies['release_year'] >= year_range[0]) &
+        (filtered_movies['release_year'] <= year_range[1]) &
+        (filtered_movies['popularity'] >= pop_range[0]) &
+        (filtered_movies['popularity'] <= pop_range[1])
+    ]
+
+    # Display results
+    st.subheader("Movies you may like:")
+    if not filtered_movies.empty:
+        for idx, row in enumerate(filtered_movies.head(10).itertuples(), start=1):
+            st.write(f"{idx}. {row.title} ({row.release_year})")
+    else:
+        st.write("No movies match the selected filters.")
