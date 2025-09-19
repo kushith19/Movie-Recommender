@@ -17,7 +17,7 @@ def preprocess_and_save(full=True):
         credits = pd.read_csv(credits_path)
     else:
         # Use a small sample dataset for deployment/demo
-        sample_path = os.path.join(BASE_DIR, 'app_data', 'sample_movies.csv')
+        sample_path = os.path.abspath(os.path.join(BASE_DIR, '..', 'app_data', 'sample_movies.csv'))
         if not os.path.exists(sample_path):
             raise FileNotFoundError(
                 "Sample dataset not found. Please create 'sample_movies.csv' in app_data/ for deployment."
@@ -69,6 +69,7 @@ def preprocess_and_save(full=True):
     print(f"✅ Preprocessed dataset saved to {output_path}")
     return df_final
 
+
 def load_data():
     """
     Load movies.csv if exists. Otherwise, fallback to sample dataset for deployment.
@@ -80,7 +81,7 @@ def load_data():
         return pd.read_csv(path)
     else:
         # Use sample dataset from app_data for deployment/demo
-        sample_path = os.path.join(BASE_DIR, 'app_data', 'sample_movies.csv')
+        sample_path = os.path.abspath(os.path.join(BASE_DIR, '..', 'app_data', 'sample_movies.csv'))
         if not os.path.exists(sample_path):
             raise FileNotFoundError(
                 "Sample dataset not found. Please create 'sample_movies.csv' in app_data/ for deployment."
@@ -88,6 +89,6 @@ def load_data():
         print("⚡ Using sample dataset for deployment/demo.")
         return pd.read_csv(sample_path)
 
+
 if __name__ == "__main__":
     preprocess_and_save()
-

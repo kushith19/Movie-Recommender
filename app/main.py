@@ -4,6 +4,9 @@ from preprocessing import load_data
 from recommender import create_similarity_matrix, recommend_movie, save_similarity_matrix, load_similarity_matrix
 import os
 
+# -------------------------------
+# Load Movies Data
+# -------------------------------
 @st.cache_data
 def get_movies():
     """
@@ -11,11 +14,14 @@ def get_movies():
     Falls back to sample_movies.csv in app_data/ if full dataset is not available.
     """
     try:
-        return load_data()  # load_data now handles full or sample dataset
+        return load_data()  # load_data handles both full or sample datasets
     except FileNotFoundError as e:
         st.error(str(e))
         return pd.DataFrame()
 
+# -------------------------------
+# Load or Create Similarity Matrix
+# -------------------------------
 @st.cache_resource
 def get_similarity(df):
     """
@@ -33,33 +39,43 @@ def get_similarity(df):
         save_similarity_matrix(sim, sim_path)
         return sim
 
-# Load movies dataframe
+# -------------------------------
+# Load Data & Similarity Matrix
+# -------------------------------
 df = get_movies()
 if df.empty:
-    st.stop()
+    st.stop()  # Stop if no dataset available
 
-# Load or create similarity matrix
 cosine_sim = get_similarity(df)
 
+# -------------------------------
+# Streamlit UI
+# -------------------------------
 st.title("🎬 Movie Recommender System")
 st.sidebar.header("Filter Movies")
 
-# Sidebar filters
+# Genres filter
 genres_list = sorted({g for sublist in df['genres'].dropna().str.split() for g in sublist if g})
 selected_genres = st.sidebar.multiselect("Select Genres", genres_list)
 
+# Year filter
 valid_years = df[df['release_year'] > 1900]['release_year']
 min_year, max_year = int(valid_years.min()), int(valid_years.max())
 year_range = st.sidebar.slider("Select Release Year Range", min_year, max_year, (min_year, max_year))
 
+# Popularity filter
 min_pop, max_pop = float(df['popularity'].min()), float(df['popularity'].max())
 pop_range = st.sidebar.slider("Select Popularity Range", min_pop, max_pop, (min_pop, max_pop))
 
+# Movie selection
 movie_list = df['title'].dropna().unique()
 selected_movie = st.selectbox("Choose a movie you like:", movie_list)
 
-# Recommendation button
+# -------------------------------
+# Recommendation Button
+# -------------------------------
 if st.button("Recommend"):
+    # Get top 50 recommendations
     recommendations = recommend_movie(selected_movie, df, cosine_sim, top_n=50)
 
     # Apply filters
@@ -75,7 +91,7 @@ if st.button("Recommend"):
         (filtered_movies['popularity'] <= pop_range[1])
     ]
 
-    # Display recommendations
+    # Display filtered recommendations
     st.subheader("Movies you may like:")
     if not filtered_movies.empty:
         for idx, row in enumerate(filtered_movies.head(10).itertuples(), start=1):
