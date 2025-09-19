@@ -7,7 +7,7 @@ import os
 # -------------------------------
 # Project Paths
 # -------------------------------
-PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 MODELS_DIR = os.path.join(PROJECT_DIR, 'models')
 
 # -------------------------------
@@ -17,14 +17,15 @@ MODELS_DIR = os.path.join(PROJECT_DIR, 'models')
 def get_movies():
     """
     Load movies.csv safely.
-    Falls back to sample_movies.csv in app_data/ if full dataset is not available.
+    Falls back to sample_movies.csv in the same folder as preprocessing.py if full dataset is not available.
     """
     try:
-        df = load_data()  # load_data handles both full or sample datasets
-        st.write(f"✅ Loaded dataset with {len(df)} movies")
+        df = load_data()  # load_data now handles both full or sample datasets
+        # st.write(f"✅ Loaded dataset with {len(df)} movies")
         return df
     except FileNotFoundError as e:
         st.error(str(e))
+        st.stop()
         return pd.DataFrame()
 
 # -------------------------------
@@ -37,14 +38,14 @@ def get_similarity(df):
     Saves it in models/cosine_sim.pkl
     """
     sim_path = os.path.join(MODELS_DIR, 'cosine_sim.pkl')
+    os.makedirs(MODELS_DIR, exist_ok=True)
 
     if os.path.exists(sim_path):
-        st.write("⚡ Loading existing similarity matrix...")
+        # st.write("⚡ Loading existing similarity matrix...")
         return load_similarity_matrix(sim_path)
     else:
-        st.write("⚡ Creating similarity matrix (this may take a few seconds)...")
+        # st.write("⚡ Creating similarity matrix (this may take a few seconds)...")
         sim = create_similarity_matrix(df)
-        os.makedirs(MODELS_DIR, exist_ok=True)
         save_similarity_matrix(sim, sim_path)
         return sim
 
@@ -52,9 +53,6 @@ def get_similarity(df):
 # Load Data & Similarity Matrix
 # -------------------------------
 df = get_movies()
-if df.empty:
-    st.stop()  # Stop if no dataset available
-
 cosine_sim = get_similarity(df)
 
 # -------------------------------
@@ -107,3 +105,9 @@ if st.button("Recommend"):
             st.write(f"{idx}. {row.title} ({row.release_year})")
     else:
         st.write("No movies match the selected filters.")
+
+
+# st.sidebar.write("**Debug Info**")
+# st.sidebar.write(f"Dataset rows: {len(df)}")
+# st.sidebar.write(f"First movie: {df['title'].iloc[0] if len(df) > 0 else 'N/A'}")
+# st.sidebar.write(f"Similarity matrix shape: {cosine_sim.shape if cosine_sim is not None else 'N/A'}")
